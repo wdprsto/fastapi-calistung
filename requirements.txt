@@ -4,6 +4,5 @@ numpy==1.21.6
 opencv_python_headless
 Pillow==9.1.1
 tensorflow==2.8.0
-win32gui==221.6
 uvicorn[standard]
 gunicorn
