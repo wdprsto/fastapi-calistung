@@ -1,0 +1,7 @@
+fastapi==0.78.0
+imutils==0.5.4
+numpy==1.21.6
+uvicorn
+gunicorn
+opencv-python-headless
+tensorflow-cpu
