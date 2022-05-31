@@ -1,4 +1,5 @@
 fastapi==0.78.0
 imutils==0.5.4
 numpy==1.21.6
-tensorflow==2.8.0
+opencv_python==4.5.3.56
+tensorflow-cpu
