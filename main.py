@@ -19,4 +19,4 @@ async def create_upload_file(image: UploadFile = File(...)):
     inferencer = TFLiteInferencer(converted_image)
     prediction = inferencer.predict()
 
-    return prediction
+    return {"result_predict" : prediction}
