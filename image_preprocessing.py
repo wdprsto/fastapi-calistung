@@ -66,28 +66,30 @@ class TextRecognizer:
         STEP 2: TEXT RECOGNIZER
         '''
         # parameters
-        min_w, max_w = 4, 400
-        min_h, max_h = 14, 400
+        min_w, max_w = 15, 1200
+        min_h, max_h = 15, 1200
 
         # find countour
         conts = self.contour_detection(processed_image.copy())
 
+        # sort the contour
+        sorted_box = self.sort_contour(conts)
+
         # prepare the output
-        for c in conts:
-            (x, y, w, h) = cv2.boundingRect(c)
+        for box in sorted_box:
+            (x, y, w, h) = box
             if (w >= min_w and w <= max_w) and (h >= min_h and h <= max_h):
                 # the one which is processed should be the greyscaled, not inverted dilated one
                 self.process_box(thresh, x, y, w, h)
         
-        boxes = np.array([box[1] for box in self.characters])
-        pixels = np.array([pixel[0] for pixel in self.characters], dtype = 'float32')
+        pixels = np.array([pixel for pixel in self.characters], dtype = 'float32')
 
-        return (pixels, boxes)
+        return pixels
 
     def contour_detection(self, img):
-        conts = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        conts = imutils.grab_contours(conts)
-        conts = sort_contours(conts, method = 'left-to-right')[0]
+        conts = cv2.findContours(img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
+        conts = np.array([cv2.boundingRect(i) for i in conts])
+        conts = self.filter_edge_contour(conts, img.shape)
         return conts
 
     # Extract Range of Interest (ROI)
@@ -122,4 +124,29 @@ class TextRecognizer:
         resized = self.resize_img(roi, w, h)
         normalized = self.normalization(resized)
 
-        self.characters.append((normalized, (x, y, w, h)))
+        self.characters.append(normalized)
+
+    # filter segments that touch the edge of the image
+    def filter_edge_contour(self, bounding_box, image_shape):
+        x, y, w, h = bounding_box[:, 0], bounding_box[:, 1], bounding_box[:, 2], bounding_box[:, 3]
+        res_y, res_x = image_shape
+        return bounding_box[((res_x - w - x) * (res_y - h - y) * x * y) != 0]
+
+    def sort_contour(self, conts):
+        # sort the countur, 1st top to bottom (line by line), then left to right for each line
+        # sort the data from y values/top
+        sort_by_line = conts[np.argsort(conts[:, 1])]
+
+        # slice data to lines by the difference of every y where 
+        # y is greater that median of the char heights
+        median_h = np.median(sort_by_line[:, -1])
+        diff_y = np.diff(sort_by_line[:,1])
+        new_line = np.where(diff_y > median_h-5)[0] + 1 # nilai np.where perlu diubah agar pembagian linenya benar
+        lines = np.array_split(sort_by_line, new_line)
+
+        # sorted each lines from left.
+        sorted_left = [line[np.argsort(line[:, 0])] for line in lines]
+
+        sorted_box = [box for lines in sorted_left for box in lines]
+
+        return sorted_box

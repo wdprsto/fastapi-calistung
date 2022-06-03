@@ -12,7 +12,7 @@ class TFLiteInferencer:
         # clear backend session of tf
         tf.keras.backend.clear_session()
 
-        (pixels, boxes) = self.processed_data
+        pixels = self.processed_data
     
         # load tflite model
         interpreter = tf.lite.Interpreter(model_path="model.tflite")
@@ -37,24 +37,13 @@ class TFLiteInferencer:
         # PROCESS TEXT, SINGLE OR MULTIPLE LINE
         if len(output_data)>1:
             predicted_data = []
-            for (prediction, (x, y, w, h)) in zip(output_data, boxes):
+            for prediction in output_data:
                 i = np.argmax(prediction)
                 character = classLabels[i]
-                predicted_data.append([character, x, y])
-        
-            # first, group by the y value since we want to group per line
-            a = np.array([i[2] for i in predicted_data])# or np.array(d)[:,n] if all the elements of d have the same shape
-            b,c = np.where(np.abs(a-a[:,None]) < 20)# I used a maximum distance of 20 between character in group
+                predicted_data.append(character)
 
-            e = set(tuple(k[1] for k in j) for i,j in groupby(zip(b,c), key=lambda x:x[0]))
-
-            grouped_list = [[predicted_data[j] for j in i] for i in e]
-
-            grouped_list.sort(key=lambda c: c[0][2])
-
-            output = []
-            _ = [[output.append(x[0]) for x in y] for y in grouped_list]
-            output_text = "".join(output)
+            output_text = "".join(predicted_data)
+            
         # PROCESS ONLY 1 CHARACTER
         else:
             i = np.argmax(output_data[0])
